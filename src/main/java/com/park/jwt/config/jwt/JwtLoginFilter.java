@@ -19,10 +19,14 @@ import com.park.jwt.web.dto.LoginReqDto;
 
 import lombok.RequiredArgsConstructor;
 
-// 응답해주기위해 토큰 만들어 주기. (시큐리티 필요없어짐.) 토큰은 헤더에 담긴다.
-// UsernamePasswordAuthenticationToken으로 매니저가 로그인을 시도한다.
-// 이 필터의 목적은 UsernamePasswordAuthenticationFilter 를 바꿔치기 한다.
-// 기존의 x-www 방식으로 데이터를 받아오는것을 바꿔기하는것.
+// 목적 : JWT토큰을 만들고 헤더에 담아서 응답 해준다. (그러면 인증과 관련된 시큐리티 기능을 필요 없어진다.)
+// 방법 : UsernamePasswordAuthenticationFilter을 내가 만든 커스텀 필터로 바꿔치기 한다.
+//			= 기존의 x-www 방식으로 데이터를 받아오는것을 Json 방식으로 바꿀 수 있다.
+// 이유 : UsernamePasswordAuthenticationFilter는 UsernamePasswordAuthenticationToken을 만드는데
+// 			AuthenticationManager가 UsernamePasswordAuthenticationToken을 통해
+//			로그인을 진행한다. 로그인이 완료되면 Authentication 객체가 만들어지고
+//			시큐리티의 권한관리 기능을 사용할 수 있게 된다. (인증은 JWT로 할 것이기에 인증기능은 사용하지 않는다.) 
+
 @RequiredArgsConstructor
 public class JwtLoginFilter extends UsernamePasswordAuthenticationFilter{
 	
@@ -38,37 +42,38 @@ public class JwtLoginFilter extends UsernamePasswordAuthenticationFilter{
 		LoginReqDto loginReqDto = null;
 		
 		try {
-			// 파싱하는 코드.
+			// 로그인시 들어오는 값을 받음. 키 벨류 방식
 			loginReqDto = om.readValue(request.getInputStream(), LoginReqDto.class);
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		System.out.println("loginReqDto : " + loginReqDto);
 		
+		// 시큐리티가 알아서 해준것을 우리가 직접 만들어주는 방법
 		// 1. UsernamePassword토큰 만들기
-		System.out.println("토큰 만들기 시작.");
+		System.out.println("auth 토큰 만들기 시작.");
 		UsernamePasswordAuthenticationToken authToken =
 				new UsernamePasswordAuthenticationToken(loginReqDto.getUsername(), loginReqDto.getPassword());
-		System.out.println("토큰 만들기 완료. : " + authToken);
+		System.out.println("auth 토큰 만들기 완료. : " + authToken);
 		
 		// 2. AuthenticationManager에게 토큰을 전달하면 자동으로 UserDetailsService가 호출
 		// 		응답은 Authentication 으로 받는다. 그것을 리턴하면 끝.
-		System.out.println("토큰 전달하기 시작.");
-		authenticationManager.authenticate(authToken);
-		System.out.println("토큰 전달하기 성공. : " + authenticationManager.authenticate(authToken));
-		//System.out.println("authentication : " + authentication);
-		return null;
+		System.out.println("auth 토큰 전달하기 시작.");
+		
+		// authenticate가 실행되면 UserDetailsService의 loadUserByUsername함수를 자동으로 호출하게 된다.
+		Authentication authentication = authenticationManager.authenticate(authToken);
+		System.out.println("auth 토큰 전달하기 성공. : " + authentication);
+		
+		// 결론적으로 리턴해주면 세션을 만들어 준것. (JWT 토큰을 만든것이 아님.)
+		return authentication;
 	}
 	
 	@Override
 	protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
 			Authentication authResult) throws IOException, ServletException {
 		super.successfulAuthentication(request, response, chain, authResult);
-		System.out.println("로그인에 성공했습니다.");
+		System.out.println("로그인 완료되어서 세션 만들어짐. 이제 JWT 토큰 만들어서 response.header에 응답할 차례");
 	}
 	
-	@Override
-	protected AuthenticationFailureHandler getFailureHandler() {
-		// TODO Auto-generated method stub
-		return super.getFailureHandler();
-	}
 }

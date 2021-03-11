@@ -24,6 +24,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 	// 이미 등록되어 있을 수 도 있다.
 	
 	// Baerer Auth 방식.
+	// = 
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
 		System.out.println("시큐리티 필터 실행됨.");
@@ -32,9 +33,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 			//.addFilter(null)
 			// csrf토큰을 사용하지 않는다.
 			.csrf().disable()
-			// form로그인 방식은 않쓴다.
+			// form로그인 방식은 안쓴다.
 			.formLogin().disable()
-			// 헤더를 사용하지 않는다.
+			// JSession을 쿠키에 저장해서 로그인을 하는 방식을 사용하지 않고
+			// 오직 헤더를 통해서만 인증을 한다. 
 			.httpBasic().disable()
 			// jwt방식을 사용할려면 stateless라는 것을 알려줘야한다.
 			.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
