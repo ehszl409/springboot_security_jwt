@@ -1,6 +1,7 @@
 package com.park.jwt.config.jwt;
 
 import java.io.IOException;
+import java.util.Date;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -14,7 +15,10 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.park.jwt.config.auth.PrincipalDetails;
 import com.park.jwt.web.dto.LoginReqDto;
 
 import lombok.RequiredArgsConstructor;
@@ -72,8 +76,28 @@ public class JwtLoginFilter extends UsernamePasswordAuthenticationFilter{
 	@Override
 	protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
 			Authentication authResult) throws IOException, ServletException {
-		super.successfulAuthentication(request, response, chain, authResult);
 		System.out.println("로그인 완료되어서 세션 만들어짐. 이제 JWT 토큰 만들어서 response.header에 응답할 차례");
+		
+		// Authentication authResult =
+				// Authenticaion 객체에서 principalDetails를 가져와야한다.
+				PrincipalDetails principalDetails = (PrincipalDetails) authResult.getPrincipal();
+				
+				// JWT토큰은 보완파일이 아니다. 전자서명의 역할을 할 뿐.
+				// 그래서 JWT토큰안에 사용자 정보를 잘 못 넣게 되면 큰일날 수 있다.
+				// 헤더는 JWT가 자동으로 만들어준다. 우리는 Payload만 만들어주면 된다.
+				// payload는 유저의정보가 들어가는 곳.
+				String jwtToken = JWT.create()
+						// 토큰의 이름.
+						.withSubject("blogToken") 
+						// 토큰의 만료시간.
+						.withExpiresAt(new Date(System.currentTimeMillis()+ 1000*60*10))
+						.withClaim("userId", principalDetails.getUser().getId())
+						.sign(Algorithm.HMAC512("홍길동"));
+				
+				System.out.println("JWT Token : " + jwtToken);
+				response.setHeader("Authorization", "Bearer " + jwtToken);
+				// doFilter를 하면 UsernamePasswordAuthenticationFilter 다음 필터를 타게된다.
+				// doFilter(request, response, chain);
 	}
 	
 }

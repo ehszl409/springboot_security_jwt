@@ -10,10 +10,17 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import com.park.jwt.config.jwt.JwtLoginFilter;
+import com.park.jwt.config.jwt.JwtVerifyFilter;
+import com.park.jwt.domain.UserRepo;
 
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
 @EnableWebSecurity // 시큐리티 사용.
 @Configuration
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
+	
+	private final UserRepo userRepo;
 
 	@Bean
 	public BCryptPasswordEncoder passwordEncoder() {
@@ -29,8 +36,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 	protected void configure(HttpSecurity http) throws Exception {
 		System.out.println("시큐리티 필터 실행됨.");
 		http
+			// /login일떄만 동작하는 필터. (오직 POST요청일떄만 필터를 탄다.)
 			.addFilter(new JwtLoginFilter(authenticationManager()))
-			//.addFilter(null)
+			// 권한이 필요한 모든 요청에 동작한다.
+			// 권한이나 인증이 필요할때 계속해서 동작한다.
+			// 이 필터는 GET요청일시 무조건 탄다.
+			.addFilter(new JwtVerifyFilter(authenticationManager(), userRepo))
 			// csrf토큰을 사용하지 않는다.
 			.csrf().disable()
 			// form로그인 방식은 안쓴다.
